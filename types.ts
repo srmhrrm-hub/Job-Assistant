@@ -79,3 +79,5 @@ export enum AppState {
 }
 
 export type TabView = 'PROFILE' | 'WORKSPACE' | 'HISTORY';
+
+export type AppLanguage = 'fr' | 'en';

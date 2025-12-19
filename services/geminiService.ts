@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { GeneratedContent } from "../types";
+import { GeneratedContent, AppLanguage } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -72,13 +72,17 @@ export const generateOrRefineContent = async (
   currentData: GeneratedContent | null,
   userMessage: string,
   masterCV: string,
-  masterLetter: string
+  masterLetter: string,
+  language: AppLanguage
 ): Promise<GeneratedContent> => {
   
   const isInitial = currentData === null;
+  const langName = language === 'fr' ? 'Français' : 'English';
 
   const prompt = `
     Tu es un Expert Carrière et Designer. Tu interagis via un Chat.
+    
+    LANGUE DE SORTIE OBLIGATOIRE : ${langName}. (Tout le contenu CV et Lettre doit être en ${langName}).
     
     TÂCHE : ${isInitial ? "Créer une nouvelle candidature" : "Modifier la candidature existante"}
     
@@ -99,8 +103,8 @@ export const generateOrRefineContent = async (
     DIRECTIVES :
     1. Si c'est la première demande, crée un CV et une lettre adaptés à l'offre en utilisant les données maîtres.
     2. Si c'est une modification, mets à jour le JSON actuel selon la demande (design ou contenu).
-    3. 'design.rationale' doit contenir ta réponse textuelle au chat (ex: "J'ai passé le CV en bleu et ajouté tes compétences React.").
-    4. Pas de photo. Format A4. Langue : Français.
+    3. 'design.rationale' doit contenir ta réponse textuelle au chat.
+    4. Pas de photo. Format A4.
   `;
 
   try {
