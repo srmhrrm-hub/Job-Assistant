@@ -4,7 +4,7 @@ export const translations = {
   fr: {
     nav_profile: "Profils",
     nav_workspace: "Espace de Travail",
-    nav_history: "Historique",
+    nav_history: "Candidatures",
     app_title: "Assistant Emploi",
     
     // Profile
@@ -30,12 +30,27 @@ export const translations = {
     ws_empty_title: "Prêt à travailler",
     ws_empty_desc: "Collez l'offre d'emploi à gauche et dites à l'IA :",
     ws_empty_action: "Fais-moi un CV pour ce poste",
+    ws_ats_score: "Score ATS",
+    ws_ats_missing: "Mots-clés manquants",
+    ws_reset_btn: "Nouvelle candidature",
+    ws_reset_confirm: "Attention : Cela va effacer l'espace de travail actuel. Assurez-vous d'avoir sauvegardé si nécessaire. Continuer ?",
+    ws_draft_loaded: "Brouillon restauré",
     
-    // History
+    // History (Kanban & Trash)
     hist_title: "Mes Candidatures",
-    hist_empty: "Historique vide.",
-    hist_delete_confirm: "Supprimer définitivement cette candidature ?",
-    hist_date_format: 'fr-FR',
+    hist_empty: "Aucune candidature. Créez-en une dans l'Espace de Travail !",
+    hist_restore: "Restaurer",
+    hist_purge_confirm: "Supprimer DÉFINITIVEMENT ?",
+    hist_trash_title: "Corbeille (7 jours avant suppression)",
+    hist_view_trash: "Voir la Corbeille",
+    hist_view_board: "Voir le Tableau",
+    status_todo: "À faire",
+    status_applied: "Envoyé",
+    status_interview: "Entretien",
+    status_offer: "Offre",
+    status_rejected: "Refusé",
+    move_next: "Avancer",
+    move_prev: "Reculer",
 
     // Common
     btn_save: "Sauvegarder",
@@ -46,7 +61,7 @@ export const translations = {
   en: {
     nav_profile: "Profiles",
     nav_workspace: "Workspace",
-    nav_history: "History",
+    nav_history: "Applications",
     app_title: "Career Assistant",
     
     // Profile
@@ -72,12 +87,27 @@ export const translations = {
     ws_empty_title: "Ready to work",
     ws_empty_desc: "Paste the job description on the left and tell the AI:",
     ws_empty_action: "Make a CV for this job",
+    ws_ats_score: "ATS Score",
+    ws_ats_missing: "Missing Keywords",
+    ws_reset_btn: "New Application",
+    ws_reset_confirm: "Warning: This will clear the current workspace. Ensure you saved if needed. Continue?",
+    ws_draft_loaded: "Draft restored",
 
-    // History
+    // History (Kanban & Trash)
     hist_title: "My Applications",
-    hist_empty: "History is empty.",
-    hist_delete_confirm: "Permanently delete this application?",
-    hist_date_format: 'en-US',
+    hist_empty: "No applications yet. Create one in Workspace!",
+    hist_restore: "Restore",
+    hist_purge_confirm: "Delete PERMANENTLY?",
+    hist_trash_title: "Trash (Deleted after 7 days)",
+    hist_view_trash: "View Trash",
+    hist_view_board: "View Board",
+    status_todo: "To Do",
+    status_applied: "Applied",
+    status_interview: "Interview",
+    status_offer: "Offer",
+    status_rejected: "Rejected",
+    move_next: "Move Next",
+    move_prev: "Move Back",
 
     // Common
     btn_save: "Save",

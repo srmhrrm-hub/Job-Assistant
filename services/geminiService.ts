@@ -11,6 +11,16 @@ const responseSchema: Schema = {
       properties: { companyName: { type: Type.STRING }, jobTitle: { type: Type.STRING } },
       required: ["companyName", "jobTitle"]
     },
+    // NOUVEAU: Section ATS
+    ats: {
+      type: Type.OBJECT,
+      properties: {
+        score: { type: Type.INTEGER, description: "Score de 0 à 100 de correspondance" },
+        missingKeywords: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Mots-clés importants de l'offre absents du CV" },
+        feedback: { type: Type.STRING, description: "Court conseil pour améliorer le score" }
+      },
+      required: ["score", "missingKeywords", "feedback"]
+    },
     design: {
         type: Type.OBJECT,
         properties: {
@@ -62,7 +72,7 @@ const responseSchema: Schema = {
     },
     coverLetter: { type: Type.STRING }
   },
-  required: ["analysis", "design", "cv", "coverLetter"]
+  required: ["analysis", "ats", "design", "cv", "coverLetter"]
 };
 
 const MODEL_NAME = "gemini-3-flash-preview";
@@ -82,9 +92,9 @@ export const generateOrRefineContent = async (
   const prompt = `
     Tu es un Expert Carrière et Designer. Tu interagis via un Chat.
     
-    LANGUE DE SORTIE OBLIGATOIRE : ${langName}. (Tout le contenu CV et Lettre doit être en ${langName}).
+    LANGUE DE SORTIE OBLIGATOIRE : ${langName}. (Tout le contenu CV, Lettre et Feedback doit être en ${langName}).
     
-    TÂCHE : ${isInitial ? "Créer une nouvelle candidature" : "Modifier la candidature existante"}
+    TÂCHE : ${isInitial ? "Créer une nouvelle candidature et analyser le match ATS" : "Modifier la candidature existante"}
     
     OFFRE D'EMPLOI :
     ${jobDescription}
@@ -101,10 +111,11 @@ export const generateOrRefineContent = async (
     MESSAGE UTILISATEUR : "${userMessage}"
     
     DIRECTIVES :
-    1. Si c'est la première demande, crée un CV et une lettre adaptés à l'offre en utilisant les données maîtres.
-    2. Si c'est une modification, mets à jour le JSON actuel selon la demande (design ou contenu).
-    3. 'design.rationale' doit contenir ta réponse textuelle au chat.
-    4. Pas de photo. Format A4.
+    1. Analyse ATS : Compare le CV généré à l'offre. Donne un score (0-100) et liste les mots-clés manquants.
+    2. Si c'est la première demande, crée un CV et une lettre adaptés à l'offre en utilisant les données maîtres.
+    3. Si c'est une modification, mets à jour le JSON actuel selon la demande.
+    4. 'design.rationale' doit contenir ta réponse conversationnelle au chat.
+    5. Pas de photo. Format A4.
   `;
 
   try {

@@ -29,6 +29,13 @@ export interface AnalysisData {
   jobTitle: string;
 }
 
+// Nouveau: Analyse ATS
+export interface AtsAnalysis {
+  score: number;
+  missingKeywords: string[];
+  feedback: string;
+}
+
 export type DesignLayout = 'modern' | 'classic' | 'minimal';
 export type DesignColor = 'blue' | 'emerald' | 'slate' | 'rose' | 'amber';
 export type DesignFont = 'sans' | 'serif' | 'mono';
@@ -42,12 +49,12 @@ export interface DesignSettings {
 
 export interface GeneratedContent {
   analysis: AnalysisData;
+  ats: AtsAnalysis;
   design: DesignSettings;
   cv: CVData;
   coverLetter: string;
 }
 
-// Nouvelle structure de Profil
 export interface Profile {
   id: string;
   name: string;
@@ -62,13 +69,18 @@ export interface ChatMessage {
   timestamp: number;
 }
 
+// Ajout du statut 'trash'
+export type ApplicationStatus = 'todo' | 'applied' | 'interview' | 'offer' | 'rejected' | 'trash';
+
 export interface SavedApplication {
   id: string;
   createdAt: number;
-  profileUsedId: string; // Lien vers le profil utilisé
+  profileUsedId: string;
   jobDescription: string;
   chatHistory: ChatMessage[];
   generatedContent: GeneratedContent;
+  status: ApplicationStatus;
+  deletedAt?: number; // Nouveau: Date de mise à la corbeille
 }
 
 export enum AppState {

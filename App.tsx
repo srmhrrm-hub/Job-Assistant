@@ -7,11 +7,14 @@ import { HistoryList } from './components/HistoryList';
 import { ExportModal } from './components/ExportModal';
 import { generateOrRefineContent } from './services/geminiService';
 import { 
-  saveApplication, getApplications, deleteApplication, 
+  saveApplication, getApplications, 
+  softDeleteApplication, restoreApplication, permanentlyDeleteApplication, cleanupTrash,
+  updateApplicationStatus,
   getProfiles, saveProfiles, createProfile, updateProfile, deleteProfile,
-  getActiveProfileId, setActiveProfileId
+  getActiveProfileId, setActiveProfileId,
+  saveWorkspaceDraft, getWorkspaceDraft, clearWorkspaceDraft // Imports Draft
 } from './services/storageService';
-import { AppState, GeneratedContent, SavedApplication, ChatMessage, TabView, Profile, AppLanguage } from './types';
+import { AppState, GeneratedContent, SavedApplication, ChatMessage, TabView, Profile, AppLanguage, ApplicationStatus } from './types';
 import { t } from './utils/translations';
 
 const App: React.FC = () => {
@@ -53,10 +56,20 @@ const App: React.FC = () => {
     const initialActiveId = loadedProfiles.find(p => p.id === storedActiveId) ? storedActiveId : loadedProfiles[0].id;
     setActiveProfileIdState(initialActiveId);
     
-    // 3. Load Apps
+    // 3. Load Apps & Cleanup Trash
+    cleanupTrash(); // Auto-delete old trash items
     setSavedApps(getApplications());
+
+    // 4. LOAD WORKSPACE DRAFT (Auto-restore)
+    const draft = getWorkspaceDraft();
+    if (draft) {
+        setJobDesc(draft.jobDesc);
+        setChatHistory(draft.chatHistory);
+        setGeneratedData(draft.generatedData);
+        if (draft.generatedData) setAppState(AppState.SUCCESS);
+    }
     
-    // 4. Default View Logic
+    // 5. Default View Logic
     const activeProfile = loadedProfiles.find(p => p.id === initialActiveId);
     if (!activeProfile || !activeProfile.cv) {
         setCurrentView('PROFILE');
@@ -64,6 +77,14 @@ const App: React.FC = () => {
         setCurrentView('WORKSPACE');
     }
   }, []);
+
+  // AUTO-SAVE DRAFT
+  useEffect(() => {
+      // Save only if there is something substantial
+      if (jobDesc || chatHistory.length > 0 || generatedData) {
+          saveWorkspaceDraft(jobDesc, chatHistory, generatedData);
+      }
+  }, [jobDesc, chatHistory, generatedData]);
 
   // --- PROFILE ACTIONS ---
 
@@ -147,10 +168,44 @@ const App: React.FC = () => {
         jobDescription: jobDesc,
         chatHistory: chatHistory,
         generatedContent: generatedData,
-        profileUsedId: activeProfileId
+        profileUsedId: activeProfileId,
+        status: 'todo' // Default status
     });
     setSavedApps(getApplications());
-    alert("Candidature sauvegardée.");
+    alert("Candidature sauvegardée dans l'historique.");
+  };
+
+  // --- RESET / NEW APPLICATION ---
+  const handleResetWorkspace = () => {
+      if (confirm(t(lang, 'ws_reset_confirm'))) {
+          setJobDesc("");
+          setChatHistory([]);
+          setGeneratedData(null);
+          setAppState(AppState.IDLE);
+          clearWorkspaceDraft(); // Clear storage
+      }
+  };
+
+  // --- HISTORY ACTIONS ---
+
+  const handleStatusChange = (id: string, status: ApplicationStatus) => {
+      const updated = updateApplicationStatus(id, status);
+      setSavedApps(updated);
+  };
+
+  const handleSoftDelete = (id: string) => {
+      const updated = softDeleteApplication(id);
+      setSavedApps(updated);
+  };
+
+  const handleRestore = (id: string) => {
+      const updated = restoreApplication(id);
+      setSavedApps(updated);
+  };
+
+  const handlePermanentDelete = (id: string) => {
+      const updated = permanentlyDeleteApplication(id);
+      setSavedApps(updated);
   };
 
   const handleLoadApplication = (app: SavedApplication) => {
@@ -159,15 +214,13 @@ const App: React.FC = () => {
       setGeneratedData(app.generatedContent);
       setAppState(AppState.SUCCESS);
       setCurrentView('WORKSPACE');
+      // Loading an old app overwrites the draft intentionally (as it becomes the current workspace)
   };
   
-  const handleNewApplication = () => {
-      setJobDesc("");
-      setChatHistory([]);
-      setGeneratedData(null);
-      setAppState(AppState.IDLE);
+  // Navigation Handler (Does NOT reset anymore)
+  const handleGoToWorkspace = () => {
       setCurrentView('WORKSPACE');
-  }
+  };
 
   const activeProfileName = profiles.find(p => p.id === activeProfileId)?.name || "Profil";
 
@@ -188,7 +241,7 @@ const App: React.FC = () => {
                 </svg>
                 {t(lang, 'nav_profile')}
             </button>
-            <button onClick={() => { handleNewApplication(); setCurrentView('WORKSPACE'); }} className={`flex items-center gap-2 px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${currentView === 'WORKSPACE' ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}>
+            <button onClick={handleGoToWorkspace} className={`flex items-center gap-2 px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${currentView === 'WORKSPACE' ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}>
                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3 h-3">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.111 48.111 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0M12 12.75h.008v.008H12v-.008z" />
                 </svg>
@@ -237,16 +290,21 @@ const App: React.FC = () => {
            </div>
         )}
 
-        {/* VIEW: HISTORY */}
+        {/* VIEW: HISTORY (KANBAN) */}
         {currentView === 'HISTORY' && (
-            <div className="h-full overflow-y-auto custom-scrollbar max-w-5xl mx-auto">
-                <h2 className="text-2xl font-bold text-white p-6 pb-0">{t(lang, 'hist_title')}</h2>
-                <HistoryList 
-                    applications={savedApps} 
-                    onLoad={handleLoadApplication} 
-                    onDelete={(id) => { setSavedApps(deleteApplication(id)); }}
-                    lang={lang}
-                />
+            <div className="h-full overflow-hidden flex flex-col">
+                <h2 className="text-2xl font-bold text-white p-6 pb-2 shrink-0">{t(lang, 'hist_title')}</h2>
+                <div className="flex-1 overflow-x-auto overflow-y-hidden">
+                    <HistoryList 
+                        applications={savedApps} 
+                        onLoad={handleLoadApplication} 
+                        onSoftDelete={handleSoftDelete}
+                        onRestore={handleRestore}
+                        onPermanentDelete={handlePermanentDelete}
+                        onStatusChange={handleStatusChange}
+                        lang={lang}
+                    />
+                </div>
             </div>
         )}
 
@@ -270,6 +328,7 @@ const App: React.FC = () => {
                             jobDesc={jobDesc}
                             setJobDesc={setJobDesc}
                             hasJobDescLocked={chatHistory.length > 0}
+                            onReset={handleResetWorkspace}
                             lang={lang}
                         />
                     </div>
@@ -280,6 +339,40 @@ const App: React.FC = () => {
                     
                     {generatedData ? (
                         <>
+                             {/* ATS SCORE PANEL (Nouveau) */}
+                             {generatedData.ats && (
+                                <div className="bg-slate-900/80 backdrop-blur border-b border-slate-800 p-3 flex items-center justify-between gap-4 z-10 shrink-0">
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex items-center gap-2">
+                                            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t(lang, 'ws_ats_score')}</div>
+                                            <div className={`text-xl font-bold ${generatedData.ats.score >= 80 ? 'text-emerald-400' : generatedData.ats.score >= 50 ? 'text-amber-400' : 'text-red-400'}`}>
+                                                {generatedData.ats.score}%
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="h-8 w-px bg-slate-700"></div>
+                                        
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] font-bold text-slate-500 uppercase">{t(lang, 'ws_ats_missing')}</span>
+                                            <div className="flex gap-1 flex-wrap">
+                                                {generatedData.ats.missingKeywords.slice(0, 3).map((kw, i) => (
+                                                    <span key={i} className="text-xs bg-red-900/30 text-red-300 px-1.5 rounded border border-red-900/50">{kw}</span>
+                                                ))}
+                                                {generatedData.ats.missingKeywords.length > 3 && (
+                                                    <span className="text-xs text-slate-500">+{generatedData.ats.missingKeywords.length - 3}</span>
+                                                )}
+                                                {generatedData.ats.missingKeywords.length === 0 && (
+                                                    <span className="text-xs text-emerald-500">Aucun !</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="text-xs text-slate-400 italic max-w-xs truncate hidden xl:block">
+                                        "{generatedData.ats.feedback}"
+                                    </div>
+                                </div>
+                             )}
+
                             {/* Toolbar */}
                             <div className="h-14 border-b border-slate-800 bg-slate-900/50 flex items-center justify-between px-6 shrink-0 backdrop-blur-sm z-10">
                                 <div className="flex bg-slate-800 rounded p-1">
