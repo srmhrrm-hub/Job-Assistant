@@ -5,6 +5,7 @@ import { CVPreview } from './components/CVPreview';
 import { LetterPreview } from './components/LetterPreview';
 import { HistoryList } from './components/HistoryList';
 import { ExportModal } from './components/ExportModal';
+import { DesignToolbar } from './components/DesignToolbar'; // Import added
 import { generateOrRefineContent } from './services/geminiService';
 import { 
   saveApplication, getApplications, 
@@ -12,9 +13,9 @@ import {
   updateApplicationStatus,
   getProfiles, saveProfiles, createProfile, updateProfile, deleteProfile,
   getActiveProfileId, setActiveProfileId,
-  saveWorkspaceDraft, getWorkspaceDraft, clearWorkspaceDraft // Imports Draft
+  saveWorkspaceDraft, getWorkspaceDraft, clearWorkspaceDraft 
 } from './services/storageService';
-import { AppState, GeneratedContent, SavedApplication, ChatMessage, TabView, Profile, AppLanguage, ApplicationStatus } from './types';
+import { AppState, GeneratedContent, SavedApplication, ChatMessage, TabView, Profile, AppLanguage, ApplicationStatus, DesignSettings } from './types';
 import { t } from './utils/translations';
 
 const App: React.FC = () => {
@@ -162,6 +163,16 @@ const App: React.FC = () => {
     }
   };
 
+  // NEW: Handle Manual Design Changes
+  const handleDesignChange = (newSettings: DesignSettings) => {
+    if (generatedData) {
+      setGeneratedData({
+        ...generatedData,
+        design: newSettings
+      });
+    }
+  };
+
   const handleSaveApplication = () => {
     if (!generatedData) return;
     saveApplication({
@@ -214,10 +225,9 @@ const App: React.FC = () => {
       setGeneratedData(app.generatedContent);
       setAppState(AppState.SUCCESS);
       setCurrentView('WORKSPACE');
-      // Loading an old app overwrites the draft intentionally (as it becomes the current workspace)
   };
   
-  // Navigation Handler (Does NOT reset anymore)
+  // Navigation Handler
   const handleGoToWorkspace = () => {
       setCurrentView('WORKSPACE');
   };
@@ -236,39 +246,19 @@ const App: React.FC = () => {
         
         <div className="flex bg-slate-800 p-1 rounded-lg">
             <button onClick={() => setCurrentView('PROFILE')} className={`flex items-center gap-2 px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${currentView === 'PROFILE' ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}>
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3 h-3">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                </svg>
                 {t(lang, 'nav_profile')}
             </button>
             <button onClick={handleGoToWorkspace} className={`flex items-center gap-2 px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${currentView === 'WORKSPACE' ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}>
-                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3 h-3">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.111 48.111 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0M12 12.75h.008v.008H12v-.008z" />
-                </svg>
                 {t(lang, 'nav_workspace')}
             </button>
             <button onClick={() => setCurrentView('HISTORY')} className={`flex items-center gap-2 px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${currentView === 'HISTORY' ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}>
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3 h-3">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
                 {t(lang, 'nav_history')}
             </button>
         </div>
 
-        {/* Language Toggle */}
         <div className="flex gap-2">
-            <button 
-                onClick={() => setLang('fr')} 
-                className={`text-xs px-2 py-1 rounded border ${lang === 'fr' ? 'bg-blue-900 border-blue-500 text-white' : 'border-slate-700 text-slate-500 hover:text-slate-300'}`}
-            >
-                FR
-            </button>
-             <button 
-                onClick={() => setLang('en')} 
-                className={`text-xs px-2 py-1 rounded border ${lang === 'en' ? 'bg-blue-900 border-blue-500 text-white' : 'border-slate-700 text-slate-500 hover:text-slate-300'}`}
-            >
-                EN
-            </button>
+            <button onClick={() => setLang('fr')} className={`text-xs px-2 py-1 rounded border ${lang === 'fr' ? 'bg-blue-900 border-blue-500 text-white' : 'border-slate-700 text-slate-500 hover:text-slate-300'}`}>FR</button>
+             <button onClick={() => setLang('en')} className={`text-xs px-2 py-1 rounded border ${lang === 'en' ? 'bg-blue-900 border-blue-500 text-white' : 'border-slate-700 text-slate-500 hover:text-slate-300'}`}>EN</button>
         </div>
       </header>
 
@@ -290,7 +280,7 @@ const App: React.FC = () => {
            </div>
         )}
 
-        {/* VIEW: HISTORY (KANBAN) */}
+        {/* VIEW: HISTORY */}
         {currentView === 'HISTORY' && (
             <div className="h-full overflow-hidden flex flex-col">
                 <h2 className="text-2xl font-bold text-white p-6 pb-2 shrink-0">{t(lang, 'hist_title')}</h2>
@@ -308,7 +298,7 @@ const App: React.FC = () => {
             </div>
         )}
 
-        {/* VIEW: WORKSPACE (CHAT + PREVIEW) */}
+        {/* VIEW: WORKSPACE */}
         {currentView === 'WORKSPACE' && (
             <div className="flex h-full">
                 
@@ -339,7 +329,7 @@ const App: React.FC = () => {
                     
                     {generatedData ? (
                         <>
-                             {/* ATS SCORE PANEL (Nouveau) */}
+                             {/* ATS SCORE PANEL */}
                              {generatedData.ats && (
                                 <div className="bg-slate-900/80 backdrop-blur border-b border-slate-800 p-3 flex items-center justify-between gap-4 z-10 shrink-0">
                                     <div className="flex items-center gap-4">
@@ -349,9 +339,7 @@ const App: React.FC = () => {
                                                 {generatedData.ats.score}%
                                             </div>
                                         </div>
-                                        
                                         <div className="h-8 w-px bg-slate-700"></div>
-                                        
                                         <div className="flex flex-col">
                                             <span className="text-[10px] font-bold text-slate-500 uppercase">{t(lang, 'ws_ats_missing')}</span>
                                             <div className="flex gap-1 flex-wrap">
@@ -367,9 +355,6 @@ const App: React.FC = () => {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="text-xs text-slate-400 italic max-w-xs truncate hidden xl:block">
-                                        "{generatedData.ats.feedback}"
-                                    </div>
                                 </div>
                              )}
 
@@ -384,16 +369,18 @@ const App: React.FC = () => {
                                         {t(lang, 'btn_save')}
                                     </button>
                                     <button onClick={() => setShowExportModal(true)} className="bg-white text-slate-900 hover:bg-slate-200 px-4 py-2 rounded text-xs font-bold shadow transition-transform active:scale-95 flex items-center gap-2">
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 001.913-.247m10.5 0a48.536 48.536 0 00-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5zm-3 0h.008v.008H15V10.5z" />
-                                        </svg>
                                         {t(lang, 'btn_export')}
                                     </button>
                                 </div>
                             </div>
 
                             {/* Canvas */}
-                            <div className="flex-1 overflow-y-auto custom-scrollbar p-8 bg-slate-950 flex justify-center">
+                            <div className="flex-1 overflow-y-auto custom-scrollbar p-8 bg-slate-950 flex flex-col items-center">
+                                {/* INSERTED DESIGN TOOLBAR */}
+                                <div className="w-full max-w-[210mm] mb-4">
+                                  <DesignToolbar settings={generatedData.design} onChange={handleDesignChange} />
+                                </div>
+
                                 <div className={`a4-page transition-transform origin-top duration-300 scale-[0.8] lg:scale-[0.9] xl:scale-100 ${previewTab === 'CV' ? 'block' : 'hidden'}`}>
                                     <CVPreview data={generatedData.cv} settings={generatedData.design} />
                                 </div>

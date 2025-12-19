@@ -1,6 +1,7 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { GeneratedContent, AppLanguage } from "../types";
 
+// Guideline: Use process.env.API_KEY directly.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const responseSchema: Schema = {
